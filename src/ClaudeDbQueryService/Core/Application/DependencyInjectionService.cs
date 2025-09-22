@@ -1,8 +1,8 @@
 using AutoMapper;
 using ClaudeDbQueryService.Core.Application.Configuration;
-using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery;
-using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Commands;
-using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Queries;
+using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Queries.GetHealthStatus;
+using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Commands.ExecuteClaudeQuery;
+using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Commands.AskClaude;
 
 namespace ClaudeDbQueryService.Core.Application;
 
@@ -21,11 +21,10 @@ public static class DependencyInjectionService
         services.AddTransient<IExecuteClaudeQueryCommand, ExecuteClaudeQueryCommand>();
 
         // Register Queries
-        services.AddTransient<IValidateClaudeQueryQuery, ValidateClaudeQueryQuery>();
         services.AddTransient<IGetHealthStatusQuery, GetHealthStatusQuery>();
 
         // Register main service
-        services.AddTransient<IClaudeQueryService, ClaudeQueryService>();
+        services.AddTransient<IAskClaudeCommand, AskClaudeCommand>();
 
 
         return services;

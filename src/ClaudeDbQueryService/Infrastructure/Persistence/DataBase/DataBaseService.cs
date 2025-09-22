@@ -21,7 +21,7 @@ namespace ClaudeDbQueryService.Infrastructure.Persistence.DataBase
             }
             catch (Exception ex)
             {
-                throw new Exception("Ocurrió un error inesperado. Por favor, intente nuevamente.");
+                throw new Exception("Ocurrió un error inesperado. Por favor, intente nuevamente.", ex);
             }
         }
 

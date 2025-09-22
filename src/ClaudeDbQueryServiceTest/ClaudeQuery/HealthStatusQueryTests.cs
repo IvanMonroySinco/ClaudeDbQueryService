@@ -1,4 +1,4 @@
-using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Queries;
+using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Queries.GetHealthStatus;
 using ClaudeDbQueryService.Infrastructure.External.ApiServices;
 using ClaudeDbQueryServiceTest.Common;
 using FluentAssertions;
@@ -18,7 +18,7 @@ public class HealthStatusQueryTests : TestBase
     {
         _mockClaudeApiService = new Mock<IClaudeApiService>();
         _mockLogger = CreateMockLogger<GetHealthStatusQuery>();
-        _query = new GetHealthStatusQuery(_mockClaudeApiService.Object, _mockLogger.Object);
+        _query = new GetHealthStatusQuery(_mockClaudeApiService.Object);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public class HealthStatusQueryTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.IsSuccess.Should().BeTrue();
+        result.Success.Should().BeTrue();
         result.Data.Should().NotBeNull();
     }
 
@@ -49,6 +49,6 @@ public class HealthStatusQueryTests : TestBase
 
         // Assert
         result.Should().NotBeNull();
-        result.IsSuccess.Should().BeTrue();
+        result.Success.Should().BeTrue();
     }
 }

@@ -10,7 +10,5 @@ public class MapperProfile : Profile
         CreateMap<QueryQueryRequest, QueryQueryResponse>()
             .ForMember(dest => dest.Success, opt => opt.MapFrom(src => true))
             .ForMember(dest => dest.Timestamp, opt => opt.MapFrom(src => DateTime.UtcNow));
-
-        CreateMap<QueryTool, QueryTool>();
     }
 }

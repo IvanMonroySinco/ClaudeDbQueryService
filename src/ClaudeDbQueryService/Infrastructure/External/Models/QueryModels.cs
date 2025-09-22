@@ -17,36 +17,6 @@ public class QueryHealthResponse
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
-public class QueryTool
-{
-    [JsonPropertyName("name")]
-    public string Name { get; set; } = string.Empty;
-
-    [JsonPropertyName("description")]
-    public string Description { get; set; } = string.Empty;
-
-    [JsonPropertyName("inputSchema")]
-    public object InputSchema { get; set; } = new();
-
-    [JsonPropertyName("outputSchema")]
-    public object? OutputSchema { get; set; }
-
-    [JsonPropertyName("enabled")]
-    public bool Enabled { get; set; } = true;
-}
-
-public class QueryToolsResponse
-{
-    [JsonPropertyName("tools")]
-    public List<QueryTool> Tools { get; set; } = new();
-
-    [JsonPropertyName("server")]
-    public string Server { get; set; } = string.Empty;
-
-    [JsonPropertyName("version")]
-    public string Version { get; set; } = string.Empty;
-}
-
 public class QueryQueryRequest
 {
     [JsonPropertyName("query")]
@@ -55,17 +25,6 @@ public class QueryQueryRequest
     [JsonPropertyName("tool")]
     public string? Tool { get; set; }
 
-    [JsonPropertyName("parameters")]
-    public object? Parameters { get; set; }
-
-    [JsonPropertyName("context")]
-    public object? Context { get; set; }
-
-    [JsonPropertyName("userId")]
-    public string? UserId { get; set; }
-
-    [JsonPropertyName("timeout")]
-    public int? Timeout { get; set; }
 }
 
 public class QueryQueryResponse
