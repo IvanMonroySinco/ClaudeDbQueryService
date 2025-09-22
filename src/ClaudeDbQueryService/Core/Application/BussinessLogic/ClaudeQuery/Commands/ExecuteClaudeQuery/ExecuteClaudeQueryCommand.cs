@@ -1,6 +1,7 @@
 using ClaudeDbQueryService.Core.Application.Configuration;
 using ClaudeDbQueryService.Infrastructure.External.ApiServices;
 using ClaudeDbQueryService.Infrastructure.External.Models;
+using ClaudeDbQueryService.Infrastructure.External.McpServices;
 using Microsoft.Extensions.Options;
 using Serilog;
 using SincoSoft.MYE.Common.Models;
@@ -10,13 +11,16 @@ namespace ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Comma
 public class ExecuteClaudeQueryCommand : IExecuteClaudeQueryCommand
 {
     private readonly IClaudeApiService _claudeApiService;
+    private readonly IClaudeMcpOrchestrator _claudeMcpOrchestrator;
     private readonly ClaudeOptions _claudeOptions;
 
     public ExecuteClaudeQueryCommand(
         IClaudeApiService claudeApiService,
+        IClaudeMcpOrchestrator claudeMcpOrchestrator,
         IOptions<ClaudeOptions> claudeOptions)
     {
         _claudeApiService = claudeApiService;
+        _claudeMcpOrchestrator = claudeMcpOrchestrator;
         _claudeOptions = claudeOptions.Value;
     }
 
@@ -25,30 +29,24 @@ public class ExecuteClaudeQueryCommand : IExecuteClaudeQueryCommand
         var response = new BaseResponseModel();
         try
         {
-            Log.Debug("Executing Claude query: {Query} for user: {UserId}", request.Query);
+            Log.Debug("Executing Claude query with MCP tools: {Query}", request.Query);
             var startTime = DateTime.UtcNow;
 
-            // Create Claude API request using configuration
-            var claudeRequest = new ClaudeRequest
-            {
-                Model = _claudeOptions.Model,
-                MaxTokens = _claudeOptions.MaxTokens,
-                Temperature = _claudeOptions.Temperature,
-                TopP = _claudeOptions.TopP,
-                Messages = new List<ClaudeMessage>
-                {
-                    new() { Role = "user", Content = request.Query }
-                }
-            };
+            // Use Claude + MCP orchestrator for enhanced capabilities
+            var systemPrompt = "You are an expert assistant for machinery and equipment management. Use the available tools to provide accurate, data-driven responses about equipment status, maintenance, work orders, and operational analytics.";
 
-            var claudeData = await _claudeApiService.SendMessageAsync(claudeRequest);
+            var claudeData = await _claudeMcpOrchestrator.ProcessQueryWithMcpToolsAsync(request.Query, systemPrompt);
             var executionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+
+            // Extract final response text from Claude's response
+            var responseText = ExtractResponseText(claudeData);
+            var toolsUsed = ExtractToolsUsed(claudeData);
 
             var claudeResponse = new QueryQueryResponse
             {
                 Success = true,
-                Result = claudeData.Content?.FirstOrDefault()?.Text,
-                ToolUsed = "claude-api",
+                Result = responseText,
+                ToolUsed = string.Join(", ", toolsUsed),
                 ExecutionTimeMs = (long)executionTime,
                 TokensUsed = new QueryTokenUsage
                 {
@@ -62,7 +60,7 @@ public class ExecuteClaudeQueryCommand : IExecuteClaudeQueryCommand
             Log.Error("Query executed successfully");
             response.Data = claudeResponse;
             response.StatusCode = 200;
-            response.Message = "¡Consulta realizada correctamente!";
+            response.Message = "ï¿½Consulta realizada correctamente!";
             return response;
 
         }
@@ -72,8 +70,31 @@ public class ExecuteClaudeQueryCommand : IExecuteClaudeQueryCommand
 
             response.Success = false;
             response.StatusCode = 400;
-            response.Message = "Se ha producido un error al procesar la solicitud. Por favor, inténtelo nuevamente más tarde.";
+            response.Message = "Se ha producido un error al procesar la solicitud. Por favor, intï¿½ntelo nuevamente mï¿½s tarde.";
             return response;
         }
+    }
+
+    private static string ExtractResponseText(ClaudeResponse claudeResponse)
+    {
+        // Get the final text response, ignoring tool_use content
+        var textContent = claudeResponse.Content
+            .Where(c => c.Type == "text" && !string.IsNullOrEmpty(c.Text))
+            .Select(c => c.Text)
+            .ToList();
+
+        return string.Join("\n", textContent);
+    }
+
+    private static List<string> ExtractToolsUsed(ClaudeResponse claudeResponse)
+    {
+        // Extract names of tools that were used
+        var toolsUsed = claudeResponse.Content
+            .Where(c => c.Type == "tool_use" && !string.IsNullOrEmpty(c.Name))
+            .Select(c => c.Name!)
+            .Distinct()
+            .ToList();
+
+        return toolsUsed.Any() ? toolsUsed : new List<string> { "claude-api" };
     }
 }

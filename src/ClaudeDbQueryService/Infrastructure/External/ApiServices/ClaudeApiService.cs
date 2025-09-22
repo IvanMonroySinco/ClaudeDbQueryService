@@ -183,6 +183,39 @@ public class ClaudeApiService : IClaudeApiService
         return await SendMessageAsync(request, cancellationToken);
     }
 
+    public async Task<ClaudeResponse> ProcessQueryWithToolsAsync(string query, List<ClaudeTool> tools, string? systemPrompt = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            throw new ArgumentException("Query cannot be empty", nameof(query));
+        }
+
+        var request = new ClaudeRequest
+        {
+            Model = _options.Model,
+            MaxTokens = _options.MaxTokens,
+            Temperature = _options.Temperature,
+            TopP = _options.TopP,
+            Tools = tools,
+            ToolChoice = new { type = "auto" },
+            Messages = new List<ClaudeMessage>
+            {
+                new()
+                {
+                    Role = "user",
+                    Content = query
+                }
+            }
+        };
+
+        if (!string.IsNullOrWhiteSpace(systemPrompt))
+        {
+            request.System = systemPrompt;
+        }
+
+        return await SendMessageAsync(request, cancellationToken);
+    }
+
     public async Task<bool> IsHealthyAsync(CancellationToken cancellationToken = default)
     {
         try

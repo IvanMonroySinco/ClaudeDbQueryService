@@ -25,6 +25,8 @@ builder.Services.Configure<ClaudeOptions>(
     builder.Configuration.GetSection(ClaudeOptions.SectionName));
 builder.Services.Configure<QueryServiceOptions>(
     builder.Configuration.GetSection(QueryServiceOptions.SectionName));
+builder.Services.Configure<McpOptions>(
+    builder.Configuration.GetSection(McpOptions.SectionName));
 
 // Add services to the container
 builder.Services.AddControllers().AddJsonOptions(x => x.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles);

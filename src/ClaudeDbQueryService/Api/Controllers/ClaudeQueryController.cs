@@ -7,6 +7,7 @@ using Serilog;
 using SincoSoft.MYE.Common;
 using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Queries.GetHealthStatus;
 using ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Commands.AskClaude;
+using ClaudeDbQueryService.Infrastructure.External.McpServices;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace ClaudeDbQueryService.Api.Controllers;
@@ -78,5 +79,55 @@ public class ClaudeQueryController : ControllerBase
         };
 
         return this.HandleResponse(serverInfo);
+    }
+
+    [HttpGet("mcp/health")]
+    public async Task<IActionResult> GetMcpHealth([FromServices] IMcpToolsService mcpService)
+    {
+        try
+        {
+            var isHealthy = await mcpService.IsHealthyAsync();
+            var status = new
+            {
+                mcp_status = isHealthy ? "healthy" : "unhealthy",
+                timestamp = DateTime.UtcNow,
+                message = isHealthy ? "MCP tools service is operational" : "MCP tools service is not responding"
+            };
+
+            return isHealthy ? Ok(status) : StatusCode(503, status);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error checking MCP health");
+            return StatusCode(503, new { mcp_status = "error", message = ex.Message, timestamp = DateTime.UtcNow });
+        }
+    }
+
+    [HttpGet("mcp/tools")]
+    public async Task<IActionResult> GetMcpTools([FromServices] IMcpToolsService mcpService)
+    {
+        try
+        {
+            await mcpService.InitializeAsync();
+            var tools = await mcpService.GetAvailableToolsAsync();
+
+            var toolsInfo = new
+            {
+                tools_count = tools.Count(),
+                tools = tools.Select(t => new
+                {
+                    name = t.Name,
+                    description = t.Description
+                }),
+                timestamp = DateTime.UtcNow
+            };
+
+            return this.HandleResponse(toolsInfo);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error getting MCP tools");
+            return StatusCode(500, new { error = ex.Message, timestamp = DateTime.UtcNow });
+        }
     }
 }

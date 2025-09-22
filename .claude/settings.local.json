@@ -7,7 +7,8 @@
       "Bash(tree:*)",
       "Bash(dotnet restore:*)",
       "Bash(dotnet build:*)",
-      "Bash(git clean:*)"
+      "Bash(git clean:*)",
+      "WebSearch"
     ],
     "deny": [],
     "ask": []

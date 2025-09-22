@@ -1,4 +1,6 @@
 ﻿using ClaudeDbQueryService.Infrastructure.External.ApiServices;
+using ClaudeDbQueryService.Infrastructure.External.McpServices;
+using ClaudeDbQueryService.Core.Application.Configuration;
 
 namespace ClaudeDbQueryService.Infrastructure.External
 {
@@ -9,9 +11,12 @@ namespace ClaudeDbQueryService.Infrastructure.External
             // Configure HttpClient for Claude API
             services.AddHttpClient<IClaudeApiService, ClaudeApiService>();
 
-
             // Register infrastructure services
             services.AddScoped<IClaudeApiService, ClaudeApiService>();
+
+            // Register MCP services
+            services.AddSingleton<IMcpToolsService, McpToolsService>();
+            services.AddScoped<IClaudeMcpOrchestrator, ClaudeMcpOrchestrator>();
 
             return services;
         }

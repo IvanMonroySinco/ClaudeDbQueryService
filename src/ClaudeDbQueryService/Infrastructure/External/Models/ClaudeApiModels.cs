@@ -8,7 +8,7 @@ public class ClaudeMessage
     public string Role { get; set; } = string.Empty;
 
     [JsonPropertyName("content")]
-    public string Content { get; set; } = string.Empty;
+    public object Content { get; set; } = string.Empty;
 }
 
 public class ClaudeRequest
@@ -33,6 +33,12 @@ public class ClaudeRequest
 
     [JsonPropertyName("stream")]
     public bool Stream { get; set; } = false;
+
+    [JsonPropertyName("tools")]
+    public List<ClaudeTool>? Tools { get; set; }
+
+    [JsonPropertyName("tool_choice")]
+    public object? ToolChoice { get; set; }
 }
 
 public class ClaudeResponse
@@ -68,7 +74,28 @@ public class ClaudeContent
     public string Type { get; set; } = string.Empty;
 
     [JsonPropertyName("text")]
-    public string Text { get; set; } = string.Empty;
+    public string? Text { get; set; }
+
+    [JsonPropertyName("name")]
+    public string? Name { get; set; }
+
+    [JsonPropertyName("input")]
+    public object? Input { get; set; }
+
+    [JsonPropertyName("id")]
+    public string? Id { get; set; }
+
+    [JsonPropertyName("tool_use_id")]
+    public string? ToolUseId { get; set; }
+
+    [JsonPropertyName("content")]
+    public object? ContentValue { get; set; }
+
+    [JsonPropertyName("tool_result_id")]
+    public string? ToolResultId { get; set; }
+
+    [JsonPropertyName("is_error")]
+    public bool? IsError { get; set; }
 }
 
 public class ClaudeUsage
@@ -96,4 +123,46 @@ public class ClaudeError
 
     [JsonPropertyName("message")]
     public string Message { get; set; } = string.Empty;
+}
+
+public class ClaudeTool
+{
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; } = string.Empty;
+
+    [JsonPropertyName("input_schema")]
+    public object InputSchema { get; set; } = new();
+}
+
+public class ClaudeToolUse
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "tool_use";
+
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = string.Empty;
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("input")]
+    public object Input { get; set; } = new();
+}
+
+public class ClaudeToolResult
+{
+    [JsonPropertyName("type")]
+    public string Type { get; set; } = "tool_result";
+
+    [JsonPropertyName("tool_use_id")]
+    public string ToolUseId { get; set; } = string.Empty;
+
+    [JsonPropertyName("content")]
+    public object Content { get; set; } = new();
+
+    [JsonPropertyName("is_error")]
+    public bool? IsError { get; set; }
 }
