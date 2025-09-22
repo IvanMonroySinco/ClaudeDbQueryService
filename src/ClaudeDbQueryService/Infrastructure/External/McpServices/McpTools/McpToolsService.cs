@@ -6,12 +6,11 @@ using ModelContextProtocol.Protocol;
 using System.Text.Json;
 using Serilog;
 
-namespace ClaudeDbQueryService.Infrastructure.External.McpServices;
+namespace ClaudeDbQueryService.Infrastructure.External.McpServices.McpTools;
 
 public class McpToolsService : IMcpToolsService
 {
     private readonly McpOptions _options;
-    private readonly ILogger<McpToolsService> _logger;
     private IMcpClient? _mcpClient;
     private readonly object _lockObject = new();
     private bool _disposed = false;
@@ -21,7 +20,6 @@ public class McpToolsService : IMcpToolsService
     public McpToolsService(IOptions<McpOptions> options, ILogger<McpToolsService> logger)
     {
         _options = options.Value;
-        _logger = logger;
     }
 
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
@@ -35,7 +33,7 @@ public class McpToolsService : IMcpToolsService
             if (_isInitialized)
                 return;
 
-            _logger.LogInformation("Initializing MCP Tools Service with executable: {ExecutablePath}", _options.ExecutablePath);
+            Log.Information("Initializing MCP Tools Service with executable: {ExecutablePath}", _options.ExecutablePath);
 
             if (!File.Exists(_options.ExecutablePath))
             {
@@ -52,12 +50,12 @@ public class McpToolsService : IMcpToolsService
             var options = new McpClientOptions();
             _mcpClient = await McpClientFactory.CreateAsync(clientTransport, options, cancellationToken: cancellationToken);
 
-            _logger.LogInformation("MCP Client connected successfully");
+            Log.Information("MCP Client connected successfully");
             _isInitialized = true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize MCP Tools Service");
+            Log.Error(ex, "Failed to initialize MCP Tools Service");
             await CleanupAsync();
             throw;
         }
@@ -84,7 +82,7 @@ public class McpToolsService : IMcpToolsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get available MCP tools");
+            Log.Error(ex, "Failed to get available MCP tools");
             throw;
         }
     }
@@ -96,8 +94,6 @@ public class McpToolsService : IMcpToolsService
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            _logger.LogDebug("Executing MCP tool: {ToolName} with parameters: {Parameters}", toolName, JsonSerializer.Serialize(parameters));
-
             var argumentsDict = parameters as IReadOnlyDictionary<string, object?> ??
                                new Dictionary<string, object?> { ["input"] = parameters };
 
@@ -105,7 +101,7 @@ public class McpToolsService : IMcpToolsService
 
             stopwatch.Stop();
 
-            _logger.LogDebug("MCP tool {ToolName} executed successfully in {ElapsedMs}ms", toolName, stopwatch.ElapsedMilliseconds);
+            Log.Debug("MCP tool {ToolName} executed successfully in {ElapsedMs}ms", toolName, stopwatch.ElapsedMilliseconds);
 
             return new McpToolResult
             {
@@ -117,7 +113,7 @@ public class McpToolsService : IMcpToolsService
         catch (Exception ex)
         {
             stopwatch.Stop();
-            _logger.LogError(ex, "Failed to execute MCP tool: {ToolName}", toolName);
+            Log.Error(ex, "Failed to execute MCP tool: {ToolName}", toolName);
 
             return new McpToolResult
             {
@@ -140,7 +136,7 @@ public class McpToolsService : IMcpToolsService
             // Check if MCP client is still connected
             if (_mcpClient == null)
             {
-                _logger.LogWarning("MCP client is not initialized");
+                Log.Warning("MCP client is not initialized");
                 return false;
             }
 
@@ -150,7 +146,7 @@ public class McpToolsService : IMcpToolsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "MCP health check failed");
+            Log.Error(ex, "MCP health check failed");
             return false;
         }
     }
@@ -182,7 +178,7 @@ public class McpToolsService : IMcpToolsService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during MCP cleanup");
+           Log.Error(ex, "Error during MCP cleanup");
         }
     }
 

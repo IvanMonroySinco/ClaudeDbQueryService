@@ -23,8 +23,6 @@ builder.Host.UseSerilog();
 // Add configuration options
 builder.Services.Configure<ClaudeOptions>(
     builder.Configuration.GetSection(ClaudeOptions.SectionName));
-builder.Services.Configure<QueryServiceOptions>(
-    builder.Configuration.GetSection(QueryServiceOptions.SectionName));
 builder.Services.Configure<McpOptions>(
     builder.Configuration.GetSection(McpOptions.SectionName));
 

@@ -3,6 +3,7 @@ using System.Text.Json;
 using ClaudeDbQueryService.Core.Application.Configuration;
 using ClaudeDbQueryService.Infrastructure.External.Models;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace ClaudeDbQueryService.Infrastructure.External.ApiServices;
 
@@ -10,7 +11,6 @@ public class ClaudeApiService : IClaudeApiService
 {
     private readonly HttpClient _httpClient;
     private readonly ClaudeOptions _options;
-    private readonly ILogger<ClaudeApiService> _logger;
     private readonly JsonSerializerOptions _jsonOptions;
 
     public ClaudeApiService(
@@ -20,19 +20,12 @@ public class ClaudeApiService : IClaudeApiService
     {
         _httpClient = httpClient;
         _options = options.Value;
-        _logger = logger;
 
         // Debug logging for configuration
-        _logger.LogDebug("ClaudeApiService configuration loaded:");
-        _logger.LogDebug("- ApiUrl: {ApiUrl}", _options.ApiUrl);
-        _logger.LogDebug("- Model: {Model}", _options.Model);
-        _logger.LogDebug("- MaxTokens: {MaxTokens}", _options.MaxTokens);
-        _logger.LogDebug("- TimeoutSeconds: {TimeoutSeconds}", _options.TimeoutSeconds);
-        _logger.LogDebug("- ApiKey configured: {HasApiKey}", !string.IsNullOrWhiteSpace(_options.ApiKey));
-        if (!string.IsNullOrWhiteSpace(_options.ApiKey))
-        {
-            _logger.LogDebug("- ApiKey length: {ApiKeyLength}", _options.ApiKey.Length);
-        }
+        Log.Debug("ClaudeApiService configuration loaded:");
+        Log.Debug("- ApiUrl: {ApiUrl}", _options.ApiUrl);
+        Log.Debug("- Model: {Model}", _options.Model);
+
 
         _jsonOptions = new JsonSerializerOptions
         {
@@ -66,17 +59,17 @@ public class ClaudeApiService : IClaudeApiService
         {
             try
             {
-                _logger.LogDebug("Sending request to Claude API (attempt {Attempt}/{MaxAttempts}): {@Request}",
+                Log.Debug("Sending request to Claude API (attempt {Attempt}/{MaxAttempts}): {@Request}",
                     attempt + 1, _options.MaxRetryAttempts + 1, request);
 
                 var jsonContent = JsonSerializer.Serialize(request, _jsonOptions);
-                _logger.LogDebug("Sending JSON to Claude API: {JsonContent}", jsonContent);
+                Log.Debug("Sending JSON to Claude API: {JsonContent}", jsonContent);
                 var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
                 var response = await _httpClient.PostAsync("", content, cancellationToken);
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-                _logger.LogDebug("Claude API response: {Response}", responseContent);
+                Log.Debug("Claude API response: {Response}", responseContent);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -86,7 +79,7 @@ public class ClaudeApiService : IClaudeApiService
                         throw new InvalidOperationException("Failed to deserialize Claude API response");
                     }
 
-                    _logger.LogInformation("Claude API request completed successfully on attempt {Attempt}. Tokens used: {InputTokens}/{OutputTokens}",
+                    Log.Information("Claude API request completed successfully on attempt {Attempt}. Tokens used: {InputTokens}/{OutputTokens}",
                         attempt + 1, claudeResponse.Usage?.InputTokens, claudeResponse.Usage?.OutputTokens);
 
                     return claudeResponse;
@@ -95,7 +88,7 @@ public class ClaudeApiService : IClaudeApiService
                 // Check if we should retry based on status code
                 var shouldRetry = ShouldRetryForStatusCode(response.StatusCode);
 
-                _logger.LogWarning("Claude API returned error: {StatusCode} - {Content}. Should retry: {ShouldRetry}",
+                Log.Warning("Claude API returned error: {StatusCode} - {Content}. Should retry: {ShouldRetry}",
                     response.StatusCode, responseContent, shouldRetry);
 
                 if (!shouldRetry || attempt >= _options.MaxRetryAttempts)
@@ -107,7 +100,7 @@ public class ClaudeApiService : IClaudeApiService
                 // Wait before retrying with exponential backoff
                 if (attempt < _options.MaxRetryAttempts)
                 {
-                    _logger.LogInformation("Retrying Claude API request in {DelaySeconds} seconds (attempt {Attempt}/{MaxAttempts})",
+                    Log.Information("Retrying Claude API request in {DelaySeconds} seconds (attempt {Attempt}/{MaxAttempts})",
                         delay.TotalSeconds, attempt + 2, _options.MaxRetryAttempts + 1);
 
                     await Task.Delay(delay, cancellationToken);
@@ -116,7 +109,7 @@ public class ClaudeApiService : IClaudeApiService
             }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
-                _logger.LogError(ex, "Claude API request timed out on attempt {Attempt}", attempt + 1);
+                Log.Error(ex, "Claude API request timed out on attempt {Attempt}", attempt + 1);
 
                 if (attempt >= _options.MaxRetryAttempts)
                 {
@@ -125,7 +118,7 @@ public class ClaudeApiService : IClaudeApiService
             }
             catch (Exception ex) when (!(ex is HttpRequestException))
             {
-                _logger.LogError(ex, "Unexpected error calling Claude API on attempt {Attempt}", attempt + 1);
+                Log.Error(ex, "Unexpected error calling Claude API on attempt {Attempt}", attempt + 1);
 
                 if (attempt >= _options.MaxRetryAttempts)
                 {
@@ -220,14 +213,7 @@ public class ClaudeApiService : IClaudeApiService
     {
         try
         {
-            _logger.LogDebug("Checking Claude API health");
-
-            // Check if API key is configured
-            if (string.IsNullOrWhiteSpace(_options.ApiKey))
-            {
-                _logger.LogWarning("Claude API key is not configured");
-                return false;
-            }
+            Log.Debug("Checking Claude API health");
 
             var healthCheckRequest = new ClaudeRequest
             {
@@ -246,13 +232,11 @@ public class ClaudeApiService : IClaudeApiService
 
             var response = await SendMessageAsync(healthCheckRequest, cancellationToken);
             var isHealthy = response.Content?.Any() == true;
-
-            _logger.LogDebug("Claude API health check result: {IsHealthy}", isHealthy);
             return isHealthy;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Claude API health check failed");
+            Log.Error(ex, "Claude API health check failed");
             return false;
         }
     }

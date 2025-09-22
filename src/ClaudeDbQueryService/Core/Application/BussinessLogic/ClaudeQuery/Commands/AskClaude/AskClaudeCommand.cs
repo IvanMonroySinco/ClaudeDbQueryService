@@ -36,7 +36,6 @@ public class AskClaudeCommand : IAskClaudeCommand
                 return response;
             }
 
-            // Execute the query
             return await _executeCommand.ExecuteClaudeQuery(request);
         }
         catch (Exception ex)

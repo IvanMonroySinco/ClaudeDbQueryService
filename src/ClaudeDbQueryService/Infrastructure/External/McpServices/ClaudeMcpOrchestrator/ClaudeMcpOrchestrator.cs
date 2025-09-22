@@ -1,19 +1,15 @@
 using ClaudeDbQueryService.Infrastructure.External.ApiServices;
+using ClaudeDbQueryService.Infrastructure.External.McpServices.McpTools;
 using ClaudeDbQueryService.Infrastructure.External.Models;
+using Serilog;
 using System.Text.Json;
 
-namespace ClaudeDbQueryService.Infrastructure.External.McpServices;
-
-public interface IClaudeMcpOrchestrator
-{
-    Task<ClaudeResponse> ProcessQueryWithMcpToolsAsync(string query, string? systemPrompt = null, CancellationToken cancellationToken = default);
-}
+namespace ClaudeDbQueryService.Infrastructure.External.McpServices.ClaudeMcpOrchestrator;
 
 public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
 {
     private readonly IClaudeApiService _claudeApiService;
     private readonly IMcpToolsService _mcpToolsService;
-    private readonly ILogger<ClaudeMcpOrchestrator> _logger;
 
     public ClaudeMcpOrchestrator(
         IClaudeApiService claudeApiService,
@@ -22,10 +18,9 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
     {
         _claudeApiService = claudeApiService;
         _mcpToolsService = mcpToolsService;
-        _logger = logger;
     }
 
-    public async Task<ClaudeResponse> ProcessQueryWithMcpToolsAsync(string query, string? systemPrompt = null, CancellationToken cancellationToken = default)
+    public async Task<ClaudeResponse> ProcessQueryWithMcpToolsAsync(string query, CancellationToken cancellationToken = default)
     {
         // Initialize MCP service if needed
         await _mcpToolsService.InitializeAsync(cancellationToken);
@@ -41,10 +36,10 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
             InputSchema = tool.InputSchema ?? new { type = "object", properties = new { }, required = new string[0] }
         }).ToList();
 
-        _logger.LogDebug("Processing query with {ToolCount} MCP tools available", claudeTools.Count);
+        Log.Debug("Processing query with {ToolCount} MCP tools available", claudeTools.Count);
 
         // Enhanced system prompt for MCP tool usage
-        var enhancedSystemPrompt = BuildEnhancedSystemPrompt(systemPrompt, claudeTools);
+        var enhancedSystemPrompt = BuildEnhancedSystemPrompt(claudeTools);
 
         // Send initial request to Claude with tools
         var claudeResponse = await _claudeApiService.ProcessQueryWithToolsAsync(query, claudeTools, enhancedSystemPrompt, cancellationToken);
@@ -62,13 +57,13 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
         string? systemPrompt,
         CancellationToken cancellationToken)
     {
-        const int maxIterations = 5; // Prevent infinite loops
+        const int maxIterations = 3;
         int iteration = 0;
 
         while (iteration < maxIterations && HasToolUse(response))
         {
             iteration++;
-            _logger.LogDebug("Processing tool calls iteration {Iteration}", iteration);
+            Log.Debug("Processing tool calls iteration {Iteration}", iteration);
 
             var toolResults = new List<ClaudeMessage>();
 
@@ -110,7 +105,7 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
 
         if (iteration >= maxIterations)
         {
-            _logger.LogWarning("Reached maximum tool call iterations ({MaxIterations})", maxIterations);
+            Log.Warning("Reached maximum tool call iterations ({MaxIterations})", maxIterations);
         }
 
         return response;
@@ -120,7 +115,7 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
     {
         try
         {
-            _logger.LogDebug("Executing tool: {ToolName} with input: {Input}", toolUse.Name, JsonSerializer.Serialize(toolUse.Input));
+            Log.Debug("Executing tool: {ToolName} with input: {Input}", toolUse.Name, JsonSerializer.Serialize(toolUse.Input));
 
             var result = await _mcpToolsService.ExecuteToolAsync(toolUse.Name!, toolUse.Input!, cancellationToken);
 
@@ -141,7 +136,7 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error executing tool {ToolName}", toolUse.Name);
+            Log.Error(ex, "Error executing tool {ToolName}", toolUse.Name);
 
             return new ClaudeMessage
             {
@@ -215,17 +210,17 @@ public class ClaudeMcpOrchestrator : IClaudeMcpOrchestrator
         }
     }
 
-    private static string BuildEnhancedSystemPrompt(string? originalSystemPrompt, List<ClaudeTool> tools)
+    private static string BuildEnhancedSystemPrompt(List<ClaudeTool> tools)
     {
-        var systemPrompt = originalSystemPrompt ?? "You are a helpful assistant with access to specialized tools for machinery and equipment management.";
+        var systemPrompt = "La fecha del día de hoy es:" + DateTime.UtcNow.ToString() + ". Eres un asistente útil experto con acceso a herramientas especializadas para la gestión de maquinaria y equipos.";
 
-        systemPrompt += "\n\nYou have access to the following specialized tools for machinery and equipment data:\n";
+        systemPrompt += "\n\nTiene acceso a las siguientes herramientas especializadas para datos de maquinaria y equipos:\n";
         foreach (var tool in tools)
         {
             systemPrompt += $"- {tool.Name}: {tool.Description}\n";
         }
 
-        systemPrompt += "\nUse these tools when users ask about equipment, maintenance, work orders, KPIs, or reports. Always provide helpful explanations along with the data.";
+        systemPrompt += "\nUtilice estas herramientas cuando los usuarios pregunten sobre equipos, mantenimiento, órdenes de trabajo, KPI o informes. Proporcione siempre explicaciones completas y útiles junto con los datos.";
 
         return systemPrompt;
     }

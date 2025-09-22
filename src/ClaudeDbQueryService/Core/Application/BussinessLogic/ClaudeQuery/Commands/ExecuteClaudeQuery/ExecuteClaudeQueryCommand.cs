@@ -1,10 +1,10 @@
 using ClaudeDbQueryService.Core.Application.Configuration;
 using ClaudeDbQueryService.Infrastructure.External.ApiServices;
 using ClaudeDbQueryService.Infrastructure.External.Models;
-using ClaudeDbQueryService.Infrastructure.External.McpServices;
 using Microsoft.Extensions.Options;
 using Serilog;
 using SincoSoft.MYE.Common.Models;
+using ClaudeDbQueryService.Infrastructure.External.McpServices.ClaudeMcpOrchestrator;
 
 namespace ClaudeDbQueryService.Core.Application.BussinessLogic.ClaudeQuery.Commands.ExecuteClaudeQuery;
 
@@ -33,9 +33,8 @@ public class ExecuteClaudeQueryCommand : IExecuteClaudeQueryCommand
             var startTime = DateTime.UtcNow;
 
             // Use Claude + MCP orchestrator for enhanced capabilities
-            var systemPrompt = "You are an expert assistant for machinery and equipment management. Use the available tools to provide accurate, data-driven responses about equipment status, maintenance, work orders, and operational analytics.";
 
-            var claudeData = await _claudeMcpOrchestrator.ProcessQueryWithMcpToolsAsync(request.Query, systemPrompt);
+            var claudeData = await _claudeMcpOrchestrator.ProcessQueryWithMcpToolsAsync(request.Query);
             var executionTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
 
             // Extract final response text from Claude's response
@@ -60,7 +59,7 @@ public class ExecuteClaudeQueryCommand : IExecuteClaudeQueryCommand
             Log.Error("Query executed successfully");
             response.Data = claudeResponse;
             response.StatusCode = 200;
-            response.Message = "�Consulta realizada correctamente!";
+            response.Message = "Consulta realizada correctamente!";
             return response;
 
         }

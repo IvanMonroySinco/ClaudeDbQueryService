@@ -22,9 +22,6 @@ public class QueryQueryRequest
     [JsonPropertyName("query")]
     public string Query { get; set; } = string.Empty;
 
-    [JsonPropertyName("tool")]
-    public string? Tool { get; set; }
-
 }
 
 public class QueryQueryResponse

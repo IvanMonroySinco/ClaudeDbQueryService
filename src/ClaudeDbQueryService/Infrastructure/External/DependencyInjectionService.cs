@@ -1,6 +1,7 @@
 ﻿using ClaudeDbQueryService.Infrastructure.External.ApiServices;
-using ClaudeDbQueryService.Infrastructure.External.McpServices;
 using ClaudeDbQueryService.Core.Application.Configuration;
+using ClaudeDbQueryService.Infrastructure.External.McpServices.ClaudeMcpOrchestrator;
+using ClaudeDbQueryService.Infrastructure.External.McpServices.McpTools;
 
 namespace ClaudeDbQueryService.Infrastructure.External
 {

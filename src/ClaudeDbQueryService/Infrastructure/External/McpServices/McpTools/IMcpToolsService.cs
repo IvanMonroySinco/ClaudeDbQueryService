@@ -1,6 +1,6 @@
 using ClaudeDbQueryService.Infrastructure.External.Models;
 
-namespace ClaudeDbQueryService.Infrastructure.External.McpServices;
+namespace ClaudeDbQueryService.Infrastructure.External.McpServices.McpTools;
 
 public interface IMcpToolsService : IDisposable
 {
